@@ -21,7 +21,7 @@ class EdgeCode(val fromId: Int, val toId: Int, val fromLabel: Int, val edgeLabel
 
 }
 
-class DFSCode(val codes: IndexedSeq[EdgeCode], val graphSet: List[(Int, Map[Int, Int])]) {
+class DFSCode(val codes: IndexedSeq[EdgeCode], val graphSet: List[(Int, Map[Int, Int])], val support: Int) {
   def info = {
     val header = "fromId\ttoId\tfromLabel\tedgeLabel\ttoLabel\n"
     val body = codes.map(code => s"${code.fromId}\t\t${code.toId}\t\t${code.fromLabel}\t\t\t${code.edgeLabel}" +

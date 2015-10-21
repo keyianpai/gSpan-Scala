@@ -44,7 +44,8 @@ object gSpanMain {
 
       for (edgeCode <- s1) {
         val dfsGraphSet = projectWithOneEdge(graphSet, edgeCode)
-        val dfsCode = new DFSCode(IndexedSeq(edgeCode), dfsGraphSet)
+        val support = dfsGraphSet.map(_._1).distinct.size
+        val dfsCode = new DFSCode(IndexedSeq(edgeCode), dfsGraphSet, support)
         subgraphMining(graphSet, s, dfsCode, minSupport)
         graphSet = shrink(graphSet, edgeCode)
       }

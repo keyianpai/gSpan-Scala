@@ -297,15 +297,12 @@ object Algorithm {
 
   }
 
-  def countSupport(dfsCode: DFSCode) = {
-    dfsCode.graphSet.map(_._1).distinct.size
-  }
 
 
   def subgraphMining(graphSet: GraphSet, s: ListBuffer[FinalDFSCode], dfsCode: DFSCode, minSupport: Int): Unit = {
     if (isMinDFSCode(dfsCode)) {
 
-      val support = countSupport(dfsCode)
+      val support = dfsCode.support
       if (support >= minSupport) {
         s += new FinalDFSCode(dfsCode.codes, support)
         println(dfsCode.info)
@@ -317,7 +314,7 @@ object Algorithm {
           val edgeCode = new EdgeCode(child._1,child._2,child._3,child._4,child._5)
           val codes = dfsCode.codes :+ edgeCode
           val projectedGraphSet = childrenGraphSet.get(child).get.toList
-          val extendedDFSCode = new DFSCode(codes, projectedGraphSet)
+          val extendedDFSCode = new DFSCode(codes, projectedGraphSet, childrenCounting.get(child).get)
           subgraphMining(graphSet, s, extendedDFSCode, minSupport)
         }
 

@@ -10,18 +10,44 @@ object gSpanMain {
   import gSpan.dataStructure._
   import gSpan.Algorithm._
 
+  def time[A](f: => A) = {
+    val s = System.nanoTime
+    val ret = f
+    println("time: "+(System.nanoTime-s)/1e9+"s")
+    ret
+  }
+
+  def setParallelismGlobally(numThreads: Int): Unit = { // Set thread pool size
+    val parPkgObj = scala.collection.parallel.`package`
+    val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
+      _.getName == "defaultTaskSupport"
+    }.get
+
+    defaultTaskSupportField.setAccessible(true)
+    defaultTaskSupportField.set(
+      parPkgObj,
+      new scala.collection.parallel.ForkJoinTaskSupport(
+        new scala.concurrent.forkjoin.ForkJoinPool(numThreads)
+      )
+    )
+  }
+
   def main(args: Array[String]) {
-    val minSupport = 500
-    val (gs, vertexLabelCounter, edgeLabelCounter) = loadDataFileAndCount("/Users/qmzheng/Code/gSpan-Scala/data/graph.data")
-    val s = new ListBuffer[FinalDFSCode]
+    time {
+      setParallelismGlobally(14)
+      //val ln = readLine()
+      val minSupport = 500
+      val (gs, vertexLabelCounter, edgeLabelCounter) = loadDataFileAndCount("/Users/qmzheng/Code/gSpan-Scala/data/graph.data")
+      val s = new ListBuffer[FinalDFSCode]
 
-    var (graphSet, s1) = removeInfrequentVerticesAndEdges(gs, minSupport, vertexLabelCounter, edgeLabelCounter)
+      var (graphSet, s1) = removeInfrequentVerticesAndEdges(gs, minSupport, vertexLabelCounter, edgeLabelCounter)
 
-    for (edgeCode <- s1){
-      val dfsGraphSet = projectWithOneEdge(graphSet, edgeCode)
-      val dfsCode = new DFSCode(List(edgeCode), dfsGraphSet)
-      subgraphMining(graphSet, s, dfsCode, minSupport)
-      graphSet = shrink(graphSet, edgeCode)
+      for (edgeCode <- s1) {
+        val dfsGraphSet = projectWithOneEdge(graphSet, edgeCode)
+        val dfsCode = new DFSCode(IndexedSeq(edgeCode), dfsGraphSet)
+        subgraphMining(graphSet, s, dfsCode, minSupport)
+        graphSet = shrink(graphSet, edgeCode)
+      }
     }
   }
 }

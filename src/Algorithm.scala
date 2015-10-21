@@ -3,6 +3,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import util.control.Breaks._
+import scala.collection.parallel._
 
 /**
  * Created by qmzheng on 10/15/15.
@@ -86,7 +87,7 @@ object Algorithm {
         path += code.fromId
       }
     }
-    path.reverse.toList
+    path.reverse.toArray
   }
 
   def reconstructGraphSet(tempGraphList: ListBuffer[Graph], vertexLabelMapping:Map[Int, Int], edgeLabelMapping:Map[Int, Int]) = {
@@ -115,10 +116,10 @@ object Algorithm {
         } )
         new Vertex(vertex.id, vertexLabelMapping.get(vertex.label).get, edges)
       })
-      graphListBuffer += new Graph(graph.id, frequentVertices.toList)
+      graphListBuffer += new Graph(graph.id, frequentVertices.toIndexedSeq)
 
     }
-    (new GraphSet(graphListBuffer.toList), oneEdgeCounter)
+    (new GraphSet(graphListBuffer.toIndexedSeq), oneEdgeCounter)
   }
 
   def projectWithOneEdge(graphSet: GraphSet, edgeCode: EdgeCode) = {
@@ -127,7 +128,7 @@ object Algorithm {
         .filter(e => (e.fromLabel, e.edgeLabel, e.toLabel) == (edgeCode.fromLabel, edgeCode.edgeLabel, edgeCode.toLabel))
         .map(e => (g.id, Map(edgeCode.fromId -> e.fromId, edgeCode.toId -> e.toId)))
       })
-    })
+    }).toList
   }
 
 
@@ -147,7 +148,7 @@ object Algorithm {
     new GraphSet(graphList)
   }
 
-  def findBackwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: List[Int]) = {
+  def findBackwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: IndexedSeq[Int]) = {
     val bound = if (dfsCode.codes.last.fromId > dfsCode.codes.last.toId) dfsCode.codes.last.toId else -1
     val rightMostNode = rightMostPath.last
 
@@ -162,7 +163,7 @@ object Algorithm {
     })
   }
 
-  def findForwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: List[Int]) = {
+  def findForwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: IndexedSeq[Int]) = {
     val rightMostNode = rightMostPath.last
     val mappedIds = mapping.values.toSet
 
@@ -205,7 +206,6 @@ object Algorithm {
   def isMinDFSCode(dfsCode:DFSCode):Boolean = {
     def search(queue: mutable.Queue[(List[Int], Map[Int, Int], Int, Int)], vertices: Array[Vertex]): Boolean = {
       while(queue.nonEmpty) {
-        // TODO
         breakable {
           var (sequence, mapping, nextPosition, lastVisit) = queue.dequeue()
           val lastVertex = vertices(sequence.last)
@@ -214,8 +214,6 @@ object Algorithm {
             .sortWith((e1, e2) => edgeCodeCompare(e1, e2) < 0)
 
           // Test backward edges
-          var nextWhileLoop = false
-          var shouldReturnFalse = false
           for ((edgeCode, index) <- backwardEdges.zipWithIndex) {
             val result = edgeCodeCompare(edgeCode, dfsCode.codes(nextPosition + index).toTuple)
             if (result < 0) {
@@ -231,7 +229,7 @@ object Algorithm {
 
           // check forward edges
           breakable {
-            while (sequence.size > 0) {
+            while (sequence.nonEmpty) {
               val lastVertex = vertices(sequence.last)
               for (edge <- lastVertex.edges) {
                 breakable {
@@ -241,7 +239,7 @@ object Algorithm {
                     if (result < 0 ){
                       return false
                     } else if (result > 0) {
-                      break //continue
+                      break() //continue
                     }
                     val updatedMapping = mapping + ((edge.toId, mapping.size))
                     val updatedSequence = sequence :+ edge.toId
@@ -252,7 +250,7 @@ object Algorithm {
               }
 
               if (forwardFlag) {
-                break // break out of the while loop
+                break() // break out of the while loop
               } else {
                 sequence = sequence.init
               }
@@ -303,6 +301,7 @@ object Algorithm {
     dfsCode.graphSet.map(_._1).distinct.size
   }
 
+
   def subgraphMining(graphSet: GraphSet, s: ListBuffer[FinalDFSCode], dfsCode: DFSCode, minSupport: Int): Unit = {
     if (isMinDFSCode(dfsCode)) {
 
@@ -316,7 +315,7 @@ object Algorithm {
 
         for(child <- supportedChild) {
           val edgeCode = new EdgeCode(child._1,child._2,child._3,child._4,child._5)
-          val codes = dfsCode.codes :+ edgeCode       // TODO: Reverse storing the edgeCode for better performance?
+          val codes = dfsCode.codes :+ edgeCode
           val projectedGraphSet = childrenGraphSet.get(child).get.toList
           val extendedDFSCode = new DFSCode(codes, projectedGraphSet)
           subgraphMining(graphSet, s, extendedDFSCode, minSupport)
@@ -329,7 +328,7 @@ object Algorithm {
   }
 
   def enumerateSubGraph(graphSet: GraphSet, dfsCode: DFSCode) = {
-    def aux(graphId: Int, mapping: Map[Int, Int], rightMostPath:List[Int]) = {
+    def aux(graphId: Int, mapping: Map[Int, Int], rightMostPath:IndexedSeq[Int]) = {
       val graph = graphSet.graphSet(graphId)
       val backwardGrowth = findBackwardGrowth(graph, mapping, dfsCode, rightMostPath)
       val forwardGrowth = findForwardGrowth(graph, mapping, dfsCode, rightMostPath)
@@ -337,7 +336,12 @@ object Algorithm {
     }
 
     val rightMostPath = buildRightMostPath(dfsCode)
-    val result = dfsCode.graphSet.map(gs => aux(gs._1, gs._2, rightMostPath))
+
+    val pGraphSet = dfsCode.graphSet.par
+    //pGraphSet.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(8))
+    val result  = pGraphSet.map(gs => aux(gs._1, gs._2, rightMostPath)).toList
+
+
 
     val childrenGraphSet = new mutable.HashMap[(Int, Int, Int, Int, Int), ListBuffer[(Int, Map[Int, Int])]]
     val graphIdSet = new mutable.HashMap[(Int, Int, Int, Int, Int), mutable.HashSet[Int]]

@@ -21,7 +21,7 @@ class EdgeCode(val fromId: Int, val toId: Int, val fromLabel: Int, val edgeLabel
 
 }
 
-class DFSCode(val codes: List[EdgeCode], val graphSet: List[(Int, Map[Int, Int])]) {
+class DFSCode(val codes: IndexedSeq[EdgeCode], val graphSet: List[(Int, Map[Int, Int])]) {
   def info = {
     val header = "fromId\ttoId\tfromLabel\tedgeLabel\ttoLabel\n"
     val body = codes.map(code => s"${code.fromId}\t\t${code.toId}\t\t${code.fromLabel}\t\t\t${code.edgeLabel}" +
@@ -30,7 +30,7 @@ class DFSCode(val codes: List[EdgeCode], val graphSet: List[(Int, Map[Int, Int])
   }
 }
 
-class FinalDFSCode(codes: List[EdgeCode], support: Int) {
+class FinalDFSCode(codes: IndexedSeq[EdgeCode], support: Int) {
 }
 
 class Vertex(val id: Int, val label: Int, var edges: List[Edge]) {
@@ -47,11 +47,10 @@ class Vertex(val id: Int, val label: Int, var edges: List[Edge]) {
   }
 }
 
-class Graph(val id: Int, val vertices: List[Vertex]) {
+class Graph(val id: Int, val vertices: IndexedSeq[Vertex]) {
 
-  // TODO: Should use Array to store vertices for faster retrieval?
 
-  def this(id: Int) = this(id, List())
+  def this(id: Int) = this(id, IndexedSeq())
 
   val tempVertices = new ListBuffer[Vertex]()
   val innerLookup: Map[Int, Vertex] = vertices.map { vertex => (vertex.id, vertex)}.toMap
@@ -68,7 +67,7 @@ class Graph(val id: Int, val vertices: List[Vertex]) {
   def findVertexSlow(vertexId: Int): Vertex = tempVertices.find(v => v.id == vertexId).get
 }
 
-class GraphSet(val graphSet: List[Graph]) // TODO: Should use array?
+class GraphSet(val graphSet: IndexedSeq[Graph])
 
 
 }

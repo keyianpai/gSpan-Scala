@@ -9,8 +9,7 @@ import scala.collection.mutable.ListBuffer
 
 class Edge(val fromId: Int, val toId: Int, val fromLabel: Int, val edgeLabel: Int, val toLabel: Int) {
     override def toString = s"Edge: ($fromId, $toId, $fromLabel, $edgeLabel, $toLabel)"
-
-  }
+}
 
 class EdgeCode(val fromId: Int, val toId: Int, val fromLabel: Int, val edgeLabel: Int, val toLabel: Int) {
   override def toString = s"Edgecode: ($fromId, $toId, $fromLabel, $edgeLabel, $toLabel)"

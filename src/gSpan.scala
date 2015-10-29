@@ -49,6 +49,7 @@ object gSpanMain {
         subgraphMining(graphSet, s, dfsCode, minSupport)
         graphSet = shrink(graphSet, edgeCode)
       }
+      println(s.size)
     }
   }
 }

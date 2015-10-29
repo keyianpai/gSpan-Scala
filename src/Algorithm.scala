@@ -297,7 +297,26 @@ object Algorithm {
 
   }
 
+  def filterImpossible(child: (Int, Int, Int, Int, Int), forwardMapping: Map[Int, (Int, Int)]): Boolean = {
 
+    if (child._1 < child._2) { // forward edge
+      if (forwardMapping.contains(child._1)) {
+        val (originalEdgeLabel, originalToLabel) = forwardMapping.get(child._1).get
+        if ((originalEdgeLabel > child._4) || (originalEdgeLabel == child._4 && originalToLabel > child._5)) {
+          return false
+        }
+      }
+
+    } else { // backward edge
+      if (forwardMapping.contains(child._2)) {
+        val (originalEdgeLabel, originalToLabel) = forwardMapping.get(child._2).get
+        if ((originalEdgeLabel > child._4) || (originalEdgeLabel == child._4 && originalToLabel > child._3)) {
+          return false
+        }
+      }
+    }
+    return true
+  }
 
   def subgraphMining(graphSet: GraphSet, s: ListBuffer[FinalDFSCode], dfsCode: DFSCode, minSupport: Int): Unit = {
     if (isMinDFSCode(dfsCode)) {
@@ -308,7 +327,15 @@ object Algorithm {
         println(dfsCode.info)
         println(support)
         val (childrenGraphSet, childrenCounting) = enumerateSubGraph(graphSet, dfsCode)
-        val supportedChild = childrenCounting.filter(_._2 >= minSupport).keys.toList.sortWith((e1, e2) => edgeCodeCompare(e1, e2) < 0)
+
+        val forwardMapping = dfsCode.codes.filter(ec => ec.fromId < ec.toId).map(ec => (ec.fromId, (ec.edgeLabel, ec.toLabel))).toMap
+
+        val supportedChild = childrenCounting//.par
+                                              .filter(_._2 >= minSupport)
+                                              .keys
+                                              //.filter(child => filterImpossible(child, forwardMapping))
+                                              .toList
+                                              .sortWith((e1, e2) => edgeCodeCompare(e1, e2) < 0)
 
         for(child <- supportedChild) {
           val edgeCode = new EdgeCode(child._1,child._2,child._3,child._4,child._5)
@@ -317,8 +344,6 @@ object Algorithm {
           val extendedDFSCode = new DFSCode(codes, projectedGraphSet, childrenCounting.get(child).get)
           subgraphMining(graphSet, s, extendedDFSCode, minSupport)
         }
-
-
       }
     }
 
@@ -335,7 +360,6 @@ object Algorithm {
     val rightMostPath = buildRightMostPath(dfsCode)
 
     val pGraphSet = dfsCode.graphSet.par
-    //pGraphSet.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(8))
     val result  = pGraphSet.map(gs => aux(gs._1, gs._2, rightMostPath)).toList
 
 

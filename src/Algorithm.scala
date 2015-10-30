@@ -1,13 +1,15 @@
 
+/**
+ * Created by qmzheng on 10/15/15.
+ */
+
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import util.control.Breaks._
 import scala.collection.parallel._
 
-/**
- * Created by qmzheng on 10/15/15.
- */
 
 package gSpan {
 
@@ -17,12 +19,13 @@ object Algorithm {
 
 
   def loadDataFileAndCount(filename: String) = {
-    val vertexLabelCounter = new mutable.HashMap[Int, Int]()
-    val edgeLabelCounter = new mutable.HashMap[Int, Int]()
+    val vertexLabelCounter = new mutable.HashMap[Int, mutable.Set[Int]]()
+    val edgeLabelCounter = new mutable.HashMap[Int, mutable.Set[Int]]()
 
     val tempGraphList = new ListBuffer[Graph]()
 
     var currentGraph: Graph = null
+    var graphId = -1
 
     for (line <- Source.fromFile(filename).getLines) {
       val segments = line.split(" ")
@@ -30,7 +33,7 @@ object Algorithm {
       lineType match {
         case "t" => {
           // New Graph
-          val graphId = segments(2).toInt
+          graphId = segments(2).toInt
           if (currentGraph != null) {
             tempGraphList += currentGraph
           }
@@ -42,7 +45,10 @@ object Algorithm {
 
           val vertesId = segments(1).toInt
           val vertexLabel = segments(2).toInt
-          vertexLabelCounter.put(vertexLabel, vertexLabelCounter.getOrElse(vertexLabel, 0) + 1)
+          if (!vertexLabelCounter.contains(vertexLabel)) {
+            vertexLabelCounter.put(vertexLabel, mutable.Set())
+          }
+          vertexLabelCounter.get(vertexLabel).get += graphId
           val vertex = new Vertex(vertesId, vertexLabel)
           currentGraph.addVertex(vertex)
         }
@@ -51,7 +57,11 @@ object Algorithm {
           val fromId = segments(1).toInt
           val toId = segments(2).toInt
           val edgeLabel = segments(3).toInt
-          edgeLabelCounter.put(edgeLabel, edgeLabelCounter.getOrElse(edgeLabel, 0) + 1)
+
+          if (!edgeLabelCounter.contains(edgeLabel)) {
+            edgeLabelCounter.put(edgeLabel, mutable.Set())
+          }
+          edgeLabelCounter.get(edgeLabel).get += graphId
 
           val fromVertex = currentGraph.findVertexSlow(fromId)
           val toVertex = currentGraph.findVertexSlow(toId)
@@ -65,7 +75,7 @@ object Algorithm {
         }
       }
     }
-    (tempGraphList, vertexLabelCounter.toMap, edgeLabelCounter.toMap)
+    (tempGraphList, vertexLabelCounter.map{case (k,v) => (k, v.size)}.toMap, edgeLabelCounter.map{case (k,v) => (k, v.size)}.toMap)
   }
 
   def removeInfrequentVerticesAndEdges(tempGraphList: ListBuffer[Graph], minSupport: Int, vertexLabelCounter:Map[Int, Int], edgeLabelCounter: Map[Int, Int]) = {
@@ -73,7 +83,7 @@ object Algorithm {
     val edgeLabelMapping = edgeLabelCounter.filter(_._2 > minSupport).toSeq.sortBy(- _._2).zipWithIndex.map(pair => (pair._1._1, pair._2)).toMap
     val (transformedGraphSet, oneEdgeCounter) = reconstructGraphSet(tempGraphList, vertexLabelMapping, edgeLabelMapping)
     val S1 = oneEdgeCounter.filter(_._2 >= 2 * minSupport).keys.toSeq.sorted.map(pair => new EdgeCode(0, 1, pair._1, pair._2, pair._3 ))
-    (transformedGraphSet, S1)
+    (transformedGraphSet, S1, vertexLabelMapping, edgeLabelMapping)
   }
 
   def buildRightMostPath(dfsCode: DFSCode) = {
@@ -324,8 +334,8 @@ object Algorithm {
       val support = dfsCode.support
       if (support >= minSupport) {
         s += new FinalDFSCode(dfsCode.codes, support)
-        println(dfsCode.info)
-        println(support)
+        //println(dfsCode.info)
+        //println(support)
         val (childrenGraphSet, childrenCounting) = enumerateSubGraph(graphSet, dfsCode)
 
         val forwardMapping = dfsCode.codes.filter(ec => ec.fromId < ec.toId).map(ec => (ec.fromId, (ec.edgeLabel, ec.toLabel))).toMap
@@ -389,8 +399,21 @@ object Algorithm {
 
     val childrenCount = graphIdSet.map(pair => (pair._1, pair._2.size))
     (childrenGraphSet, childrenCount)
-
   }
+
+  def printResult(s: ListBuffer[FinalDFSCode], vertexLabelMapping: Map[Int, Int], edgeLabelMapping: Map[Int, Int], vertexLabelCounter: Map[Int, Int]) = {
+
+    val backVertexLabelMapping = vertexLabelMapping.map {case (k,v) => (v, k)}
+    val backEdgeLabelMapping = edgeLabelMapping.map { case (k,v) => (v, k)}
+
+    val totalSize = s.size + vertexLabelMapping.size
+    println(s"   ${totalSize} frequent subgraphs")
+    println(s"=  ${s.size} frequent subgraphs with at least one edge")
+    println(s"+  ${vertexLabelMapping.size} frequent vertices")
+    s.zipWithIndex.foreach {case (code, index) => println(code.info(index, backVertexLabelMapping, backEdgeLabelMapping))}
+    vertexLabelCounter.toList.zipWithIndex.foreach{ case ((original, count), index) => println(s"t # ${index + s.size} * ${count}\nv 0 ${original}")}
+  }
+
 } // object Algorithm
 
 } //package gSpan

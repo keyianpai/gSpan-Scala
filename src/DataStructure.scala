@@ -30,6 +30,17 @@ class DFSCode(val codes: IndexedSeq[EdgeCode], val graphSet: List[(Int, Map[Int,
 }
 
 class FinalDFSCode(codes: IndexedSeq[EdgeCode], support: Int) {
+  def info(index: Int, backVertexLabelMapping: Map[Int, Int], backEdgeLabelMapping: Map[Int, Int]):String = {
+    val header = s"t # ${index} * ${support}"
+    val vinfo = codes.flatMap(code => Seq((code.fromId, code.fromLabel), (code.toId, code.toLabel)))
+          .distinct
+          .sortBy(_._1)
+          .map {case (id, label) => s"v ${id} ${backVertexLabelMapping.get(label).get}"}
+          .mkString("\n")
+    val einfo = codes.map(code => s"e ${code.fromId} ${code.toId} ${backEdgeLabelMapping.get(code.edgeLabel).get}")
+          .mkString("\n")
+    header + "\n" + vinfo + "\n" + einfo
+  }
 }
 
 class Vertex(val id: Int, val label: Int, var edges: List[Edge]) {
@@ -67,6 +78,4 @@ class Graph(val id: Int, val vertices: IndexedSeq[Vertex]) {
 }
 
 class GraphSet(val graphSet: IndexedSeq[Graph])
-
-
 }

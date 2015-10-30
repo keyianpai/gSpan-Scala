@@ -1,6 +1,7 @@
 /**
  * Created by qmzheng on 10/15/15.
  */
+
 package gSpan{
 
 import scala.collection.mutable.ListBuffer
@@ -32,26 +33,50 @@ object gSpanMain {
     )
   }
 
+  // TODO: Test running time
+  // 1% 523.3s 59129 = 59120 + 9
+  // 5% 54.2s 1838 = 1832 + 6
+  // 10% 27.7s 460 = 455 + 5
+  // 15% 22.5s 225 = 220 + 5
+  // 20% 19.2s 126 = 122 + 4
+  // 25% 14.7s 86 = 82 + 4
+  // 30% 12.8s 55 = 52 + 3
+
+
+  // TODO: Finish report
+
   def main(args: Array[String]) {
-    time {
-      setParallelismGlobally(14)
-      //val ln = readLine()
-      val minSupport = 500
-      val (gs, vertexLabelCounter, edgeLabelCounter) = loadDataFileAndCount("/Users/qmzheng/Code/gSpan-Scala/data/graph.data")
-      val s = new ListBuffer[FinalDFSCode]
 
-      var (graphSet, s1) = removeInfrequentVerticesAndEdges(gs, minSupport, vertexLabelCounter, edgeLabelCounter)
-
-      for (edgeCode <- s1) {
-        val dfsGraphSet = projectWithOneEdge(graphSet, edgeCode)
-        val support = dfsGraphSet.map(_._1).distinct.size
-        val dfsCode = new DFSCode(IndexedSeq(edgeCode), dfsGraphSet, support)
-        subgraphMining(graphSet, s, dfsCode, minSupport)
-        graphSet = shrink(graphSet, edgeCode)
-      }
-      println(s.size)
+    if (args.size != 3) {
+      println("Usage: java -jar gSpan-Scala.jar [Filename] [Support ratio] [Number of threads]")
+      println("Example: java -jar gSpan-Scala.jar graph.data 0.1 8")
+      return 0
     }
+
+    val filename = args(0)
+    val support = args(1).toDouble
+    val threads = args(2).toInt
+
+    setParallelismGlobally(threads)
+
+
+    val (gs, vertexLabelCounter, edgeLabelCounter) = loadDataFileAndCount(filename)
+    val minSupport = (gs.size * support).toInt
+
+    val s = new ListBuffer[FinalDFSCode]
+
+    var (graphSet, s1, vertexLabelMapping, edgeLabelMapping) = removeInfrequentVerticesAndEdges(gs, minSupport, vertexLabelCounter, edgeLabelCounter)
+
+    for (edgeCode <- s1) {
+      val dfsGraphSet = projectWithOneEdge(graphSet, edgeCode)
+      val support = dfsGraphSet.map(_._1).distinct.size
+      val dfsCode = new DFSCode(IndexedSeq(edgeCode), dfsGraphSet, support)
+      subgraphMining(graphSet, s, dfsCode, minSupport)
+      graphSet = shrink(graphSet, edgeCode)
+    }
+    printResult(s, vertexLabelMapping, edgeLabelMapping, vertexLabelCounter.filter(_._2 >= minSupport))
   }
+
 }
 
 }

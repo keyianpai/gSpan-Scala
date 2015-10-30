@@ -32,18 +32,7 @@ object gSpanMain {
       )
     )
   }
-
-  // TODO: Test running time
-  // 1% 523.3s 59129 = 59120 + 9
-  // 5% 54.2s 1838 = 1832 + 6
-  // 10% 27.7s 460 = 455 + 5
-  // 15% 22.5s 225 = 220 + 5
-  // 20% 19.2s 126 = 122 + 4
-  // 25% 14.7s 86 = 82 + 4
-  // 30% 12.8s 55 = 52 + 3
-
-
-  // TODO: Finish report
+  
 
   def main(args: Array[String]) {
 

@@ -6,6 +6,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{beramono}
+\usepackage{booktabs}
 \usepackage{listings}
 \usepackage{xcolor}
 
@@ -56,8 +57,34 @@ gSpan算法所面向的问题是对一个有点label、边label的图集合，�
 本报告将对算法的实现方式、所使用数据结果等方面进行介绍。其中Section 2介绍了算法实现的表现，Section 3介绍了算法所使用的数据结构，Section 4、Section 5介绍了算法的框架及一些值得注意的细节，Section 6介绍了对算法的并行化。
 
 项目地址： https://github.com/zhengqm/gSpan-Scala
+
 \section{Performance and Result}
 
+我在不同support level对所给数据集进行挖掘，所得结果、程序运行时间（三次平均）如下所示：
+
+\vspace{0.3cm}
+\begin{tabular}{rrrr}
+\toprule
+ Support threshold&  Runtime(sec) &  \#Freq graphs &  \#Freq graphs(at least 1 edge) \\
+\midrule
+    0.01 &       523.3 &            59129 &                              59120 \\
+    0.05 &        54.2 &             1838 &                               1832 \\
+    0.10 &        27.7 &              460 &                                455 \\
+    0.15 &        22.5 &              225 &                                220 \\
+    0.20 &        19.2 &              126 &                                122 \\
+    0.25 &        14.7 &               86 &                                 82 \\
+    0.30 &        12.8 &               55 &                                 52 \\
+\bottomrule
+\end{tabular}
+\vspace{0.3cm}
+
+其中，运行时间随support level的变化趋势如下所示：
+
+\begin{figure}
+  \centering
+
+  \includegraphics[width=0.6\textwidth]{time.png} 
+\end{figure}
 
 
 \section{Data Structure}

@@ -17,7 +17,11 @@ import gSpan.dataStructure._
 
 object Algorithm {
 
-
+  /**
+   * Read graph data from given filename
+   * @param filename Input filename
+   * @return (temp graph list, vertex label counter, edge label counter)
+   */
   def loadDataFileAndCount(filename: String) = {
     val vertexLabelCounter = new mutable.HashMap[Int, mutable.Set[Int]]()
     val edgeLabelCounter = new mutable.HashMap[Int, mutable.Set[Int]]()
@@ -78,6 +82,14 @@ object Algorithm {
     (tempGraphList, vertexLabelCounter.map{case (k,v) => (k, v.size)}.toMap, edgeLabelCounter.map{case (k,v) => (k, v.size)}.toMap)
   }
 
+  /**
+   * Remove vertices and edges with infrequent labels, reconstruct the graph set and corresponding label mapping
+   * @param tempGraphList
+   * @param minSupport
+   * @param vertexLabelCounter
+   * @param edgeLabelCounter
+   * @return (New graph set, frequent one-edges, vertex label mapping, edge label mapping)
+   */
   def removeInfrequentVerticesAndEdges(tempGraphList: ListBuffer[Graph], minSupport: Int, vertexLabelCounter:Map[Int, Int], edgeLabelCounter: Map[Int, Int]) = {
     val vertexLabelMapping = vertexLabelCounter.filter(_._2 > minSupport).toSeq.sortBy(- _._2).zipWithIndex.map(pair => (pair._1._1, pair._2)).toMap
     val edgeLabelMapping = edgeLabelCounter.filter(_._2 > minSupport).toSeq.sortBy(- _._2).zipWithIndex.map(pair => (pair._1._1, pair._2)).toMap
@@ -86,6 +98,11 @@ object Algorithm {
     (transformedGraphSet, S1, vertexLabelMapping, edgeLabelMapping)
   }
 
+  /**
+   * Give dfs code, build the right most path
+   * @param dfsCode The dfs code
+   * @return the right most path
+   */
   def buildRightMostPath(dfsCode: DFSCode) = {
     val rightMostNode = dfsCode.codes.last
     var rightMostId = if (rightMostNode.fromId < rightMostNode.toId) rightMostNode.toId else rightMostNode.fromId
@@ -141,7 +158,12 @@ object Algorithm {
     }).toList
   }
 
-
+  /**
+   * Remove specified edge code
+   * @param graphSet
+   * @param edgeCode
+   * @return new graph set with specified edgecode removed
+   */
   def shrink(graphSet: GraphSet, edgeCode: EdgeCode) = {
     def seen(edge: Edge, edgeCode: EdgeCode) = {
       val condition1 = (edge.fromLabel, edge.edgeLabel, edge.toLabel) == (edgeCode.fromLabel, edgeCode.edgeLabel, edgeCode.toLabel)
@@ -158,6 +180,14 @@ object Algorithm {
     new GraphSet(graphList)
   }
 
+  /**
+   * Find all possible backward growth
+   * @param graph
+   * @param mapping
+   * @param dfsCode
+   * @param rightMostPath
+   * @return a list of possible backward growth
+   */
   def findBackwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: IndexedSeq[Int]) = {
     val bound = if (dfsCode.codes.last.fromId > dfsCode.codes.last.toId) dfsCode.codes.last.toId else -1
     val rightMostNode = rightMostPath.last
@@ -173,6 +203,14 @@ object Algorithm {
     })
   }
 
+  /**
+   * Find all possible forward growth
+   * @param graph
+   * @param mapping
+   * @param dfsCode
+   * @param rightMostPath
+   * @return a list of possible forward growth
+   */
   def findForwardGrowth(graph: Graph, mapping: Map[Int, Int], dfsCode: DFSCode, rightMostPath: IndexedSeq[Int]) = {
     val rightMostNode = rightMostPath.last
     val mappedIds = mapping.values.toSet
@@ -184,6 +222,12 @@ object Algorithm {
     })
   }
 
+  /**
+   * Give the comparison result of two edge code
+   * @param edgeCode1
+   * @param edgeCode2
+   * @return -1 for <, 0 for ==, 1 for >
+   */
   def edgeCodeCompare(edgeCode1: (Int, Int, Int, Int, Int), edgeCode2: (Int, Int, Int, Int, Int)) = {
     val forward1 = edgeCode1._1 < edgeCode1._2
     val forward2 = edgeCode2._1 < edgeCode2._2
@@ -213,6 +257,10 @@ object Algorithm {
     }
   }
 
+  /**
+   * The s == min(s) check in original paper
+   * @param dfsCode
+   */
   def isMinDFSCode(dfsCode:DFSCode):Boolean = {
     def search(queue: mutable.Queue[(List[Int], Map[Int, Int], Int, Int)], vertices: Array[Vertex]): Boolean = {
       while(queue.nonEmpty) {
@@ -307,26 +355,6 @@ object Algorithm {
 
   }
 
-  def filterImpossible(child: (Int, Int, Int, Int, Int), forwardMapping: Map[Int, (Int, Int)]): Boolean = {
-
-    if (child._1 < child._2) { // forward edge
-      if (forwardMapping.contains(child._1)) {
-        val (originalEdgeLabel, originalToLabel) = forwardMapping.get(child._1).get
-        if ((originalEdgeLabel > child._4) || (originalEdgeLabel == child._4 && originalToLabel > child._5)) {
-          return false
-        }
-      }
-
-    } else { // backward edge
-      if (forwardMapping.contains(child._2)) {
-        val (originalEdgeLabel, originalToLabel) = forwardMapping.get(child._2).get
-        if ((originalEdgeLabel > child._4) || (originalEdgeLabel == child._4 && originalToLabel > child._3)) {
-          return false
-        }
-      }
-    }
-    return true
-  }
 
   def subgraphMining(graphSet: GraphSet, s: ListBuffer[FinalDFSCode], dfsCode: DFSCode, minSupport: Int): Unit = {
     if (isMinDFSCode(dfsCode)) {
@@ -359,6 +387,12 @@ object Algorithm {
 
   }
 
+  /**
+   * Parallelized children enumeration
+   * @param graphSet
+   * @param dfsCode
+   * @return possible children graph and corresponding counting
+   */
   def enumerateSubGraph(graphSet: GraphSet, dfsCode: DFSCode) = {
     def aux(graphId: Int, mapping: Map[Int, Int], rightMostPath:IndexedSeq[Int]) = {
       val graph = graphSet.graphSet(graphId)

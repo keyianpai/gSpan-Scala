@@ -32,7 +32,7 @@ object gSpanMain {
       )
     )
   }
-  
+
 
   def main(args: Array[String]) {
 

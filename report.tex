@@ -49,6 +49,7 @@
 
 \end{abstract}
 
+
 \section{Introduction}
 本次作业的主要内容是理解并实现频繁子图挖掘中的gSpan算法\cite{gspan2002,gspanlong}。
 gSpan算法所面向的问题是对一个有点label、边label的图集合，从中挖掘频繁子图。gSpan的核心是给出了对任意的图的唯一最小编码，并在此基础上把频繁子图挖掘问题转化为深度优先搜索问题。除此之外，算法根据最小编码的性质对搜索空间进行了有效剪枝，有效降低了算法的复杂度。
@@ -60,7 +61,7 @@ gSpan算法所面向的问题是对一个有点label、边label的图集合，�
 
 \section{Performance and Result}
 
-我在不同support level对所给数据集进行挖掘，所得结果、程序运行时间（三次平均）如下所示：
+我基于不同support level对所给数据集进行挖掘，所得结果、程序在笔记本上的运行时间（三次平均）如下所示：
 
 \vspace{0.3cm}
 \begin{tabular}{rrrr}
@@ -213,13 +214,28 @@ def subgraphMining(graphSet: GraphSet,
 在对编码完成最小编码判定（Line 6）及最小支撑判定（Line 8）之后，算法将该编码加入结果列表之中（Line 10），枚举从该子图可能产生的增长边并统计其支撑数（Line 11）。在此之后对所得的增长边根据最小支撑要求进行筛选并进行排序（Line 12 to 16）。
 最后对符合要求的增长边建立图数据结构，并对算法进行递归调用。
 
-\section{Important Details}
-\subsection{}
-\subsection{}
-\subsection{}
+\section{Interesting Details}
+
+\subsection{Check for minimal DFS codes}
+
+在进行子图挖掘前，一个有效的剪枝策略是将不满足最小DFS Codes要求的子图删除，这需要程序完成对最小DFS Codes的判定。一个简单但低效的做法是对于任意子图，产生其所有的DFS codes，从中选取最小的code并进行比较，这一做法相当于枚举一张图的所有表示方法并在最后进行比较。
+
+而实际上，在对codes进行判定时，并不需要实际产生完整的codes序列，而是可以使用较为启发式的方法对图进行“增量验证”。具体来说，算法可以从图中不同的点开始进行搜索，在每一步依据排序规则逐步产生最小序列，将所得到的code与输入的code进行增量比较，若所得到的code较大，则可停止进一步搜索；若所得到的code较小，则函数应返回False；若二者相等，则可以继续产生codes并继续比较。这一做法，相比简单的先产生后比较，效率存在明显提升。
+
+\subsection{Pruning of Invalid Children}
+
+\subsubsection{Forward Growth}
+
+对于最右路径上的增长，设增长节点为v且v不是最右节点，则从v增长的边须大于等于最右路径中v的增长边（否则将违反最小DFS codes的要求）。
+
+\subsubsection{Backward Growth}
+
+对于最右路径上的增长，设增长节点为v，目标节点为w。则新增长的边须大于等于最右路径中w的增长边（否则将违反最小DFS codes的要求）。
+此外，若原图中已有从v增长的反向边，则新增长的边须大于等于所有由v增长的反向边（否则将导致重复）。
+
 \section{Parallel Execution}
 
-在完成算法的实现后，我对程序进行了profile以确定速度瓶颈并进行优化。Profile的结果显示程序中耗时最多的步骤是算法中的enumerate，即对给定子图在支撑它的图中搜索其增加一条边的频繁子图。考虑到在枚举新增一条边的子图时，对支撑该子图的graphSet的搜索可以并行执行，遂对该步骤进行并行优化。
+在完成算法的实现后，我对程序进行了profile以确定速度瓶颈并进行优化。Profile的结果显示程序中耗时最多的步骤是算法中的enumerate步骤，即对给定子图在支撑它的图中搜索其增加一条边的频繁子图。考虑到在枚举新增一条边的子图时，对支撑该子图的graphSet的搜索可以并行执行，遂对该步骤进行并行优化。
 
 具体而言，在enumerate函数中，程序定义了一个帮助函数对给定子图、映射进行搜索：
 \begin{lstlisting}[style=mStyle]

@@ -5,7 +5,7 @@ Yet another gSpan implementation, parallelized, in Scala
 
 ## Requirements
 
-+ java >= 1.8
++ java >= 1.6
 
 ## Try it
 

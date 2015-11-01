@@ -35,7 +35,6 @@ object gSpanMain {
 
 
   def main(args: Array[String]) {
-
     if (args.size != 3) {
       println("Usage: java -jar gSpan-Scala.jar [Filename] [Support ratio] [Number of threads]")
       println("Example: java -jar gSpan-Scala.jar graph.data 0.1 8")

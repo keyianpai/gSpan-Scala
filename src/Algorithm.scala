@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import util.control.Breaks._
+import scala.math.Ordering.Implicits._
 import scala.collection.parallel._
 
 
@@ -355,6 +356,18 @@ object Algorithm {
 
   }
 
+  def filterImpossible(child: (Int, Int, Int, Int, Int), forwardMapping: Map[Int, (Int, Int)]):Boolean = {
+    if(child._1 > child._2 && forwardMapping.contains(child._2)) {
+      if (forwardMapping.get(child._2).get > (child._4, child._3)){
+        return false
+      }
+    } else if (child._1 < child._2 && forwardMapping.contains(child._1)){
+      if (forwardMapping.get(child._1).get > (child._4, child._5)){
+        return false
+      }
+    }
+    true
+  }
 
   def subgraphMining(graphSet: GraphSet, s: ListBuffer[FinalDFSCode], dfsCode: DFSCode, minSupport: Int): Unit = {
     if (isMinDFSCode(dfsCode)) {
@@ -368,10 +381,10 @@ object Algorithm {
 
         val forwardMapping = dfsCode.codes.filter(ec => ec.fromId < ec.toId).map(ec => (ec.fromId, (ec.edgeLabel, ec.toLabel))).toMap
 
-        val supportedChild = childrenCounting//.par
+        val supportedChild = childrenCounting.par
                                               .filter(_._2 >= minSupport)
                                               .keys
-                                              //.filter(child => filterImpossible(child, forwardMapping))
+                                              .filter(child => filterImpossible(child, forwardMapping))
                                               .toList
                                               .sortWith((e1, e2) => edgeCodeCompare(e1, e2) < 0)
 
